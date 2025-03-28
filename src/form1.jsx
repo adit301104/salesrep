@@ -52,7 +52,7 @@ const Form1 = () => {
       setShowNotification(true);
       setTimeout(() => {
         setShowNotification(false);
-        navigate("/");
+        navigate("/home");
       }, 2000);
     }
   };
