@@ -70,7 +70,7 @@ const Login = () => {
 
             <div>
               <Link
-                to="/"
+                to="/home"
               >
               <button
                 type="submit"
