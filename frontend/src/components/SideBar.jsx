@@ -5,29 +5,90 @@ import { Link, useNavigate } from "react-router-dom";
 
 const SideBar = ({ activeButton, setActiveButton }) => {
   const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
     try {
-      // Call your logout API endpoint
-      const response = await fetch('/api/auth/logout', {
+      setIsLoggingOut(true);
+      console.log('Attempting to logout');
+      
+      // Get the API URL from environment or use default
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const logoutUrl = `${apiUrl}/api/auth/logout`;
+      
+      console.log('Making logout request to:', logoutUrl);
+      
+      const response = await fetch(logoutUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Accept': 'application/json'
         },
+        credentials: 'include' // Include credentials if using cookies
       });
 
+      console.log('Logout response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      // Handle any response - regardless of content
       if (response.ok) {
-        // Clear local storage
+        // Try to get response text for logging purposes
+        try {
+          const responseText = await response.text();
+          console.log('Logout response text:', responseText);
+          
+          // Only try to parse if there's actual content
+          if (responseText && responseText.trim() !== '') {
+            try {
+              const data = JSON.parse(responseText);
+              console.log('Parsed logout response:', data);
+            } catch (parseError) {
+              console.log('No JSON to parse in logout response, continuing with logout');
+            }
+          }
+        } catch (textError) {
+          console.log('Could not read response text, continuing with logout');
+        }
+        
+        // Complete logout regardless of response content
         localStorage.removeItem('token');
-        // Redirect to login page
         navigate('/login');
-        // Reset active button
         setActiveButton('Sales Forms');
+        console.log('Logout successful, redirected to login');
       } else {
-        console.error('Logout failed');
+        // Handle error response
+        let errorMessage = 'Logout failed';
+        try {
+          const errorText = await response.text();
+          console.error('Logout error response:', errorText);
+          
+          if (errorText && errorText.trim() !== '') {
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMessage = errorData.message || errorMessage;
+            } catch (parseError) {
+              console.error('Error response not in JSON format');
+            }
+          }
+        } catch (textError) {
+          console.error('Could not read error response text');
+        }
+        
+        console.error(errorMessage);
+        // Force logout anyway on client side for better user experience
+        localStorage.removeItem('token');
+        navigate('/login');
       }
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error('Error during logout process:', error);
+      // Force logout anyway on client side
+      localStorage.removeItem('token');
+      navigate('/login');
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -75,14 +136,17 @@ const SideBar = ({ activeButton, setActiveButton }) => {
           
           <button
             onClick={handleLogout}
+            disabled={isLoggingOut}
             className={`flex items-center w-full text-base md:text-lg font-medium py-2 md:py-3 px-3 md:px-4 rounded transition-colors ${
-              activeButton === "Logout"
+              isLoggingOut
+                ? "bg-gray-500 text-gray-300 cursor-not-allowed"
+                : activeButton === "Logout"
                 ? "bg-[#90EE90] text-black"
                 : "text-gray-200 hover:bg-gray-700"
             }`}
           >
             <FaSignOutAlt className="mr-3 flex-shrink-0" size={18} />
-            <span className="truncate">Logout</span>
+            <span className="truncate">{isLoggingOut ? "Logging out..." : "Logout"}</span>
           </button>
         </div>
       </div>
