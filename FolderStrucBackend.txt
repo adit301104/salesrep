@@ -1,0 +1,20 @@
+backend/
+├── config/
+│   └── db.js                 # MongoDB connection
+├── controllers/
+│   ├── authController.js     # User login/register
+│   └── formController.js     # Form submission & retrieval
+├── middlewares/
+│   └── auth.js               # JWT authentication
+├── models/
+│   ├── Form.js               # Dynamic form schema
+│   └── User.js               # User schema
+├── routes/
+│   ├── authRoutes.js         # Auth endpoints
+│   └── formRoutes.js         # Form endpoints
+├── utils/
+│   ├── jwt.js                # JWT token handling
+│   └── formValidator.js      # (Optional) Form validation
+├── .env                      # Environment variables
+├── app.js                    # Express app setup
+└── server.js                 # Server entry point
