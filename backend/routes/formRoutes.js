@@ -1,4 +1,4 @@
-// routes/formRoutes.js
+// routes/formRoutes.js - Enhanced Form Routes
 const express = require('express');
 const {
   submitForm,
@@ -14,6 +14,13 @@ const { protect } = require('../middleware/auth');
 const upload = require('../middleware/uploadHandler');
 
 const router = express.Router();
+
+// Debug middleware specific to form routes
+router.use((req, res, next) => {
+  console.log(`[FORM ROUTE] ${req.method} ${req.originalUrl}`, 
+    req.body ? `Body: ${JSON.stringify(req.body).substring(0, 100)}...` : '');
+  next();
+});
 
 // Apply authentication to all routes
 router.use(protect);

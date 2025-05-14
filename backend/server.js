@@ -1,4 +1,4 @@
-// server.js or app.js - Express Server Configuration
+// server.js or app.js - Fixed Express Server Configuration
 const express = require('express');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -14,7 +14,7 @@ connectDB();
 // Create express app
 const app = express();
 
-// CORS Configuration
+// CORS Configuration - Enhanced to ensure frontend can communicate properly
 app.use(cors({
   origin: [
     'http://localhost:5173',
@@ -31,12 +31,14 @@ app.use(cors({
     'Access-Control-Allow-Origin',
     'Access-Control-Allow-Headers'
   ],
-  credentials: true
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 // Body parser middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Response debugging middleware
 app.use((req, res, next) => {
@@ -46,7 +48,7 @@ app.use((req, res, next) => {
   // Override res.json
   res.json = function(body) {
     // Log response for debugging
-    console.log(`[${new Date().toISOString()}] Response for ${req.method} ${req.path}:`, 
+    console.log(`[${new Date().toISOString()}] Response for ${req.method} ${req.path}:`,
       typeof body === 'object' ? JSON.stringify(body).substring(0, 200) + '...' : body);
     
     // Call original function
@@ -59,6 +61,9 @@ app.use((req, res, next) => {
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  if (req.method === 'POST' || req.method === 'PUT') {
+    console.log('Request body:', JSON.stringify(req.body).substring(0, 200) + '...');
+  }
   next();
 });
 
@@ -69,12 +74,33 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const authRoutes = require('./routes/authRoutes');
 const formRoutes = require('./routes/formRoutes');
 
+// API health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'API is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Mount routers
 app.use('/api/auth', authRoutes);
 app.use('/api/forms', formRoutes);
 
-// Catch-all route for undefined routes
-app.use((req, res, next) => {
+// If in production and frontend files are included, serve static frontend
+if (process.env.NODE_ENV === 'production' && process.env.SERVE_FRONTEND === 'true') {
+  // Serve static files
+  app.use(express.static(path.join(__dirname, 'client/dist')));
+  
+  // Handle React routing, return all requests to React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+  });
+}
+
+// Catch-all route for undefined API routes
+app.use('/api/*', (req, res) => {
+  console.log(`Route not found: ${req.method} ${req.path}`);
   res.status(404).json({
     success: false,
     message: `Route not found: ${req.method} ${req.path}`
